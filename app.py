@@ -1,5 +1,14 @@
 """
 酥烤麵包機(Gradio 版)
+上傳錄音檔 -> OpenAI 語音轉文字 -> Anthropic Claude 整理成正式社團會議記錄表(docx)
+
+執行方式:
+    python app.py
+
+需要先在同一個資料夾放一個 .env 檔(可以複製 .env.example 改名),內容:
+    OPENAI_API_KEY=你的 OpenAI 金鑰
+    ANTHROPIC_API_KEY=你的 Anthropic 金鑰
+"""
 
 import base64
 import glob
@@ -95,7 +104,7 @@ def get_anthropic_client():
 
 
 def _transcribe_single(client, filepath: str) -> str:
-    """轉錄單一個檔案(必須已經在25MB以內)。"""
+    """轉錄單一個檔案(必須已經在 25MB 以內)。"""
     with open(filepath, "rb") as f:
         resp = client.audio.transcriptions.create(
             model=OPENAI_TRANSCRIBE_MODEL,
@@ -203,7 +212,7 @@ FIELDS_TOOL = {
             },
             "other_motions": {
                 "type": "array", "items": {"type": "string"},
-                "description": "逐字稿中額外提出、不屬於原訂議程的事項,沒有就填空陣列",
+                "description": "逐字稿中額外提出、不屬於原訂議程的事項;沒有就填空陣列",
             },
             "adjournment_time": {"type": "string", "description": "散會時間;沒提到就填空字串"},
         },
@@ -218,7 +227,7 @@ def build_fields_prompt(transcript, meeting_name, meeting_date):
         "之後會被套進正式的社團會議記錄表 Word 檔裡,再呼叫 record_meeting_fields 工具提交結果。\n\n"
         "規則:\n"
         "- 全部使用繁體中文\n"
-        "- 逐字稿或補充資訊沒有提到的欄位,同一件事放在同一欄,不要編造內容\n"
+        "- 逐字稿或補充資訊沒有提到的欄位,不要編造內容\n"
         "- agenda_items 依逐字稿中實際討論到的議題整理,conclusion 欄位只有在有明確結論時才填,否則留空字串\n\n"
         "【補充資訊】\n"
         f"會議名稱:{meeting_name or '未提供'}\n"
@@ -546,15 +555,15 @@ THEME = gr.themes.Soft(
 )
 
 DISCLAIMER_TEXT = (
-    "音檔會傳送到我的本機做語音辨識,逐字稿會傳送到 Anthropic 做會議紀錄整理;"
-    "請留意內容是否適合送出。程式不會儲存您的音檔和逐字稿。"
+    "音檔會傳送到我的伺服器做語音辨識,逐字稿結果會傳送到 Anthropic 做會議紀錄整理;"
+    "請留意內容是否適合傳送出去。程式本身不會另外儲存你的音檔和逐字稿。"
 )
 
 
 def render_stub_page(title, back_link="/", back_label="← 回首頁"):
     """尚未開放的功能頁面,先放一個統一的佔位畫面。"""
     gr.HTML(task_header_html(title))
-    gr.Markdown("這個功能還在規劃中。")
+    gr.Markdown("這個功能還在規劃中,之後會用跟「會議記錄」一樣的方式(錄音/文字 → AI 整理 → 套進固定格式)做出來。")
     gr.Button(back_label, link=back_link, elem_classes=["ghost-action"])
 
 
@@ -590,7 +599,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
         gr.Markdown("#### 上傳錄音檔")
         audio_in = gr.Audio(
             sources=["upload"], type="filepath",
-            label="選擇音檔(mp3 / wav / m4a / webm / ogg / flac;超過 25MB 會自動切段處理,不用自己剪)",
+            label="選擇音檔(mp3 / wav / m4a / webm / ogg / flac;不用自己剪)",
         )
         transcribe_btn = gr.Button("開始轉成逐字稿")
         transcribe_status = gr.Markdown("")
@@ -632,7 +641,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
         progress_html = gr.HTML(progress_bar_html(0, "準備中…"))
 
     with gr.Group(visible=False) as result_group:
-        gr.Markdown("## 出爐了!")
+        gr.Markdown("## 出爐!")
         gr.Markdown("已經整理成 Word 格式的會議記錄表,下載後可以直接在 Word 裡微調、列印簽核。")
         result_json = gr.JSON(label="整理出來的內容(擷取自逐字稿,下載前可以先檢查一下)")
         result_file = gr.File(label="下載 .docx")
@@ -647,7 +656,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
     def do_transcribe(filepath, progress=gr.Progress()):
         client = get_openai_client()
         if not client:
-            return gr.update(), "未偵測到 ,請確認 .env 或 Secrets 設定。"
+            return gr.update(), "還沒偵測到 OPENAI_API_KEY,請確認 .env 或 Secrets 設定。"
         if not filepath:
             return gr.update(), "請先選擇音檔。"
         try:
@@ -709,7 +718,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
         expected_names = actual_names + absent_names
 
         try:
-            yield (*no_result, "", progress_bar_html(25, "整理逐字稿內容…"), gr.update(), gr.update(), gr.update())
+            yield (*no_result, "", progress_bar_html(25, "請 AI 整理逐字稿內容…"), gr.update(), gr.update(), gr.update())
             prompt = build_fields_prompt(transcript, meeting_name, meeting_date)
             fields = extract_fields_json(anth, prompt)
             fields["expected_count"] = f"{len(expected_names)}人" if expected_names else ""
@@ -799,3 +808,4 @@ if __name__ == "__main__":
         server_name="0.0.0.0" if is_deployed else "127.0.0.1",
         server_port=port,
     )
+

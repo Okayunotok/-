@@ -1,14 +1,5 @@
 """
 酥烤麵包機(Gradio 版)
-上傳錄音檔 -> OpenAI 語音轉文字 -> Anthropic Claude 整理成正式社團會議記錄表(docx)
-
-執行方式:
-    python app.py
-
-需要先在同一個資料夾放一個 .env 檔(可以複製 .env.example 改名),內容:
-    OPENAI_API_KEY=你的 OpenAI 金鑰
-    ANTHROPIC_API_KEY=你的 Anthropic 金鑰
-"""
 
 import base64
 import glob
@@ -555,21 +546,21 @@ THEME = gr.themes.Soft(
 )
 
 DISCLAIMER_TEXT = (
-    "音檔會傳送到 OpenAI 做語音轉文字,逐字稿與整理結果會傳送到 Anthropic 做會議紀錄整理;"
-    "兩者都是外部 API,請留意內容是否適合傳送出去。這個程式本身不會另外儲存你的音檔或逐字稿。"
+    "音檔會傳送到我的本機做語音辨識,逐字稿會傳送到 Anthropic 做會議紀錄整理;"
+    "請留意內容是否適合送出。程式不會儲存您的音檔和逐字稿。"
 )
 
 
 def render_stub_page(title, back_link="/", back_label="← 回首頁"):
     """尚未開放的功能頁面,先放一個統一的佔位畫面。"""
     gr.HTML(task_header_html(title))
-    gr.Markdown("這個功能還在規劃中,之後會用跟「會議記錄」一樣的方式(錄音/文字 → AI 整理 → 套進固定格式)做出來。")
+    gr.Markdown("這個功能還在規劃中。")
     gr.Button(back_label, link=back_link, elem_classes=["ghost-action"])
 
 
 # ==================== 首頁 ====================
 
-with gr.Blocks(title="哲學系學會 文書小幫手") as demo:
+with gr.Blocks(title="哲學系學會 文書小貓") as demo:
     gr.HTML(home_hero_html())
     gr.Markdown("### 業務")
     with gr.Row():
@@ -656,7 +647,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
     def do_transcribe(filepath, progress=gr.Progress()):
         client = get_openai_client()
         if not client:
-            return gr.update(), "還沒偵測到 OPENAI_API_KEY,請確認 .env 或 Secrets 設定。"
+            return gr.update(), "未偵測到 ,請確認 .env 或 Secrets 設定。"
         if not filepath:
             return gr.update(), "請先選擇音檔。"
         try:
@@ -718,7 +709,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
         expected_names = actual_names + absent_names
 
         try:
-            yield (*no_result, "", progress_bar_html(25, "請 AI 整理逐字稿內容…"), gr.update(), gr.update(), gr.update())
+            yield (*no_result, "", progress_bar_html(25, "整理逐字稿內容…"), gr.update(), gr.update(), gr.update())
             prompt = build_fields_prompt(transcript, meeting_name, meeting_date)
             fields = extract_fields_json(anth, prompt)
             fields["expected_count"] = f"{len(expected_names)}人" if expected_names else ""

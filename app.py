@@ -95,7 +95,7 @@ def get_anthropic_client():
 
 
 def _transcribe_single(client, filepath: str) -> str:
-    """轉錄單一個檔案(必須已經在 25MB 以內)。"""
+    """轉錄單一個檔案(必須已經在25MB以內)"""
     with open(filepath, "rb") as f:
         resp = client.audio.transcriptions.create(
             model=OPENAI_TRANSCRIBE_MODEL,

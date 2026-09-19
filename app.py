@@ -203,7 +203,7 @@ FIELDS_TOOL = {
             },
             "other_motions": {
                 "type": "array", "items": {"type": "string"},
-                "description": "逐字稿中額外提出、不屬於原訂議程的事項;沒有就填空陣列",
+                "description": "逐字稿中額外提出、不屬於原訂議程的事項,沒有就填空陣列",
             },
             "adjournment_time": {"type": "string", "description": "散會時間;沒提到就填空字串"},
         },
@@ -218,7 +218,7 @@ def build_fields_prompt(transcript, meeting_name, meeting_date):
         "之後會被套進正式的社團會議記錄表 Word 檔裡,再呼叫 record_meeting_fields 工具提交結果。\n\n"
         "規則:\n"
         "- 全部使用繁體中文\n"
-        "- 逐字稿或補充資訊沒有提到的欄位,不要編造內容\n"
+        "- 逐字稿或補充資訊沒有提到的欄位,同一件事放在同一欄,不要編造內容\n"
         "- agenda_items 依逐字稿中實際討論到的議題整理,conclusion 欄位只有在有明確結論時才填,否則留空字串\n\n"
         "【補充資訊】\n"
         f"會議名稱:{meeting_name or '未提供'}\n"

@@ -1,15 +1,3 @@
-"""
-酥烤麵包機(Gradio 版)
-上傳錄音檔 -> OpenAI 語音轉文字 -> Anthropic Claude 整理成正式社團會議記錄表(docx)
-
-執行方式:
-    python app.py
-
-需要先在同一個資料夾放一個 .env 檔(可以複製 .env.example 改名),內容:
-    OPENAI_API_KEY=你的 OpenAI 金鑰
-    ANTHROPIC_API_KEY=你的 Anthropic 金鑰
-"""
-
 import base64
 import glob
 import io
@@ -211,8 +199,6 @@ FIELDS_TOOL = {
                             "type": "array",
                             "description": (
                                 "這個議題底下的內容,拆成幾組「標籤+內容」。"
-                                "如果這個議題是單一敘述(先說明背景、再討論、最後有沒有決議),"
-                                "就用 說明/討論/決議 這三個標籤,各出一組(沒有的就不要放進陣列)。"
                                 "如果這個議題其實是好幾個具體問題分開處理(像檢討會逐項列問題),"
                                 "就每個問題各出一組,標籤填問題的簡短名稱,內容包含那個問題的狀況跟結論。"
                                 "組數不限,依逐字稿實際內容決定。"
@@ -574,10 +560,14 @@ CUSTOM_CSS = """
     color: #8B5E3C !important;
 }
 [data-testid="block-label"] svg { fill: #8B5E3C !important; }
-.primary-action button {
-    background-color: #E8A33D !important;
+.primary-action {
+    background-color: #EEDFC4 !important;
     color: #000000 !important;
     font-weight: 700 !important;
+    border: 1px solid #D8C7A6 !important;
+}
+.primary-action:hover {
+    background-color: #E6D2A8 !important;
 }
 .ghost-action button {
     background-color: transparent !important;
@@ -593,8 +583,8 @@ THEME = gr.themes.Soft(
 )
 
 DISCLAIMER_TEXT = (
-    "音檔會傳送到 OpenAI 做語音轉文字,逐字稿與整理結果會傳送到 Anthropic 做會議紀錄整理;"
-    "兩者都是外部 API,請留意內容是否適合傳送出去。這個程式本身不會另外儲存你的音檔或逐字稿。"
+    "音檔會傳送到我的主機做語音轉文字,逐字稿與整理結果會傳送到 Anthropic 做會議紀錄整理;"
+    "請留意內容是否適合傳送出去。程式本身不會儲存你的音檔或逐字稿。"
 )
 
 
@@ -848,3 +838,4 @@ if __name__ == "__main__":
         server_name="0.0.0.0" if is_deployed else "127.0.0.1",
         server_port=port,
     )
+

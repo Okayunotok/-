@@ -554,6 +554,21 @@ CUSTOM_CSS = """
 .roster-btn:hover {
     background-color: #6B4A32 !important;
 }
+.dept-heading {
+    background-color: #2B1E14;
+    border-radius: 10px;
+    padding: 4px 12px;
+    margin: 10px 0 6px;
+    display: inline-block;
+}
+.dept-heading p, .dept-heading strong { color: #FFFFFF !important; margin: 0; }
+
+/* 元件標籤徽章(選擇音檔/逐字稿內容/格式...這些橘色小標籤),
+   改成飽和度較低的棕褐色,不用主題預設的鮮橘色。 */
+[data-testid="block-info"] {
+    background-color: #EEDFC4 !important;
+    color: #8B5E3C !important;
+}
 .primary-action button {
     background-color: #E8A33D !important;
     color: #000000 !important;
@@ -641,7 +656,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
 
             person_buttons = {}
             for dept_name, dept_members in ROSTER_BY_DEPT:
-                gr.Markdown(f"**{dept_name}**", elem_classes=["force-black"])
+                gr.Markdown(f"**{dept_name}**", elem_classes=["dept-heading"])
                 for i in range(0, len(dept_members), 3):
                     with gr.Row():
                         for name in dept_members[i : i + 3]:
@@ -828,4 +843,3 @@ if __name__ == "__main__":
         server_name="0.0.0.0" if is_deployed else "127.0.0.1",
         server_port=port,
     )
-

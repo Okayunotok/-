@@ -569,6 +569,11 @@ CUSTOM_CSS = """
     background-color: #EEDFC4 !important;
     color: #8B5E3C !important;
 }
+[data-testid="block-label"] {
+    background-color: #EEDFC4 !important;
+    color: #8B5E3C !important;
+}
+[data-testid="block-label"] svg { fill: #8B5E3C !important; }
 .primary-action button {
     background-color: #E8A33D !important;
     color: #000000 !important;

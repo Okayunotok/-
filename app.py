@@ -47,11 +47,15 @@ MEETING_TIME = ""           # 例如 "晚上七點至八點三十分"
 MEETING_CHAIR = ""          # 例如 "楊易"
 MEETING_RECORDER = ""       # 例如 "黃品鑫"
 
-ROSTER = [
-    "楊易", "王乃維", "謝禮軒", "史修一", "洪芊岫", "吳沛純", "李昱諳",
-    "蔡欣妤", "呂苡希", "黃品鑫", "張毓芯", "蘇宥芸", "于子亭", "蔡禹彤",
-    "李宓蜜", "歐泰佑", "張予昕", "黃可馨", "許筑茵", "周心渝", "吳卉茜",
+ROSTER_BY_DEPT = [
+    ("正副會長", ["楊易", "王乃維"]),
+    ("活動部", ["謝禮軒", "史修一", "吳卉茜", "周心渝", "蘇宥芸", "郭柏恩", "黃可馨"]),
+    ("公關部", ["吳沛純", "李宓秘", "張毓芯", "于子亭"]),
+    ("美宣部", ["洪芊秀", "許筑茵"]),
+    ("總務部", ["呂苡希", "蔡欣妤"]),
+    ("秘書部", ["蔡禹彤", "黃品鑫"]),
 ]
+ROSTER = [name for _, members in ROSTER_BY_DEPT for name in members]  # 扁平清單,點名計算邏輯不用改
 
 # 活動企劃書:上下學期通常會辦的活動,「活動企劃書」首頁點進去後選其中一個。
 # (名稱, 網址路徑) — 之後要幫哪個活動做出真正的表單,就把對應的
@@ -636,12 +640,14 @@ with demo.route("會議記錄", "/meeting-minutes"):
             gr.Markdown("點名:每個名字按一下依序切換 ⚪未列入 → 🟢出席 → 🔴缺席 → 回到未列入")
 
             person_buttons = {}
-            for i in range(0, len(ROSTER), 3):
-                with gr.Row():
-                    for name in ROSTER[i : i + 3]:
-                        person_buttons[name] = gr.Button(
-                            f"⚪ {name}", elem_classes=["roster-btn"]
-                        )
+            for dept_name, dept_members in ROSTER_BY_DEPT:
+                gr.Markdown(f"**{dept_name}**", elem_classes=["force-black"])
+                for i in range(0, len(dept_members), 3):
+                    with gr.Row():
+                        for name in dept_members[i : i + 3]:
+                            person_buttons[name] = gr.Button(
+                                f"⚪ {name}", elem_classes=["roster-btn"]
+                            )
 
             attendance_summary = gr.Markdown("目前:出席 0 人・缺席 0 人・應到(合計) 0 人")
 
@@ -822,3 +828,4 @@ if __name__ == "__main__":
         server_name="0.0.0.0" if is_deployed else "127.0.0.1",
         server_port=port,
     )
+

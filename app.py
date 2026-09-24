@@ -203,11 +203,27 @@ FIELDS_TOOL = {
                     "type": "object",
                     "properties": {
                         "title": {"type": "string", "description": "議題標題"},
-                        "explanation": {"type": "string", "description": "背景或前情提要,沒有就填空字串"},
-                        "discussion": {"type": "string", "description": "與會者的意見與討論過程,沒有就填空字串"},
-                        "conclusion": {"type": "string", "description": "只有在有明確結論時才填,否則留空字串"},
+                        "points": {
+                            "type": "array",
+                            "description": (
+                                "這個議題底下的內容,拆成幾組「標籤+內容」。"
+                                "如果這個議題是單一敘述(先說明背景、再討論、最後有沒有決議),"
+                                "就用 說明/討論/決議 這三個標籤,各出一組(沒有的就不要放進陣列)。"
+                                "如果這個議題其實是好幾個具體問題分開處理(像檢討會逐項列問題),"
+                                "就每個問題各出一組,標籤填問題的簡短名稱,內容包含那個問題的狀況跟結論。"
+                                "組數不限,依逐字稿實際內容決定。"
+                            ),
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "label": {"type": "string", "description": "這一組的標籤,例如「說明」「討論」「決議」,或具體問題名稱"},
+                                    "detail": {"type": "string", "description": "這一組標籤對應的實際內容"},
+                                },
+                                "required": ["label", "detail"],
+                            },
+                        },
                     },
-                    "required": ["title", "explanation", "discussion", "conclusion"],
+                    "required": ["title", "points"],
                 },
             },
             "other_motions": {
@@ -228,7 +244,8 @@ def build_fields_prompt(transcript, meeting_name, meeting_date):
         "規則:\n"
         "- 全部使用繁體中文\n"
         "- 逐字稿或補充資訊沒有提到的欄位,不要編造內容\n"
-        "- agenda_items 依逐字稿中實際討論到的議題整理,conclusion 欄位只有在有明確結論時才填,否則留空字串\n\n"
+        "- agenda_items 依逐字稿中實際討論到的議題整理;每個議題底下的 points 要拆成幾組,"
+        "由逐字稿內容決定,不要硬套固定的說明/討論/決議三段式\n\n"
         "【補充資訊】\n"
         f"會議名稱:{meeting_name or '未提供'}\n"
         f"日期:{meeting_date or '未提供'}\n\n"
@@ -347,18 +364,15 @@ def build_formal_docx(fields: dict) -> bytes:
     label_content_row("本次會議\n議程", agenda_lines or [("(無)", False)])
 
     full_width_row("會　議　記　錄　欄", shade="D9D9D9")
-    for idx, item in enumerate(agenda_items):
-        num = CN_NUMS[idx] if idx < len(CN_NUMS) else str(idx + 1)
-        lines = []
-        if item.get("explanation"):
-            lines.append((f"說明:{item['explanation']}", False))
-        if item.get("discussion"):
-            lines.append((f"討論:{item['discussion']}", False))
-        if item.get("conclusion"):
-            lines.append((f"決議/結論:{item['conclusion']}", False))
+    for item in agenda_items:
+        points = item.get("points") or []
+        lines = [
+            (f"{p.get('label', '')}:{p.get('detail', '')}", False)
+            for p in points if p.get("detail")
+        ]
         if not lines:
             lines = [("(無記錄)", False)]
-        label_content_row(f"議程{num}\n{item.get('title', '')}", lines)
+        label_content_row(item.get("title", ""), lines)
 
     other_motions = fields.get("other_motions") or []
     if other_motions:
@@ -555,8 +569,8 @@ THEME = gr.themes.Soft(
 )
 
 DISCLAIMER_TEXT = (
-    "音檔會傳送到我的伺服器做語音辨識,逐字稿結果會傳送到 Anthropic 做會議紀錄整理;"
-    "請留意內容是否適合傳送出去。程式本身不會另外儲存你的音檔和逐字稿。"
+    "音檔會傳送到 OpenAI 做語音轉文字,逐字稿與整理結果會傳送到 Anthropic 做會議紀錄整理;"
+    "兩者都是外部 API,請留意內容是否適合傳送出去。這個程式本身不會另外儲存你的音檔或逐字稿。"
 )
 
 
@@ -569,7 +583,7 @@ def render_stub_page(title, back_link="/", back_label="← 回首頁"):
 
 # ==================== 首頁 ====================
 
-with gr.Blocks(title="哲學系學會 文書小貓") as demo:
+with gr.Blocks(title="哲學系學會 文書小幫手") as demo:
     gr.HTML(home_hero_html())
     gr.Markdown("### 業務")
     with gr.Row():
@@ -599,7 +613,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
         gr.Markdown("#### 上傳錄音檔")
         audio_in = gr.Audio(
             sources=["upload"], type="filepath",
-            label="選擇音檔(mp3 / wav / m4a / webm / ogg / flac;不用自己剪)",
+            label="選擇音檔(mp3 / wav / m4a / webm / ogg / flac;超過 25MB 會自動切段處理,不用自己剪)",
         )
         transcribe_btn = gr.Button("開始轉成逐字稿")
         transcribe_status = gr.Markdown("")
@@ -641,7 +655,7 @@ with demo.route("會議記錄", "/meeting-minutes"):
         progress_html = gr.HTML(progress_bar_html(0, "準備中…"))
 
     with gr.Group(visible=False) as result_group:
-        gr.Markdown("## 出爐!")
+        gr.Markdown("## 出爐了!")
         gr.Markdown("已經整理成 Word 格式的會議記錄表,下載後可以直接在 Word 裡微調、列印簽核。")
         result_json = gr.JSON(label="整理出來的內容(擷取自逐字稿,下載前可以先檢查一下)")
         result_file = gr.File(label="下載 .docx")
@@ -808,4 +822,3 @@ if __name__ == "__main__":
         server_name="0.0.0.0" if is_deployed else "127.0.0.1",
         server_port=port,
     )
-
